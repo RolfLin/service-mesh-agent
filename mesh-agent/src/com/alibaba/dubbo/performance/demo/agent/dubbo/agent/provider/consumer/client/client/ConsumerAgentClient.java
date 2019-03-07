@@ -8,10 +8,7 @@ import com.alibaba.dubbo.performance.demo.agent.rpc.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.transport.Client;
 import com.alibaba.dubbo.performance.demo.agent.transport.MeshChannel;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoop;
+import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.socket.SocketChannel;
@@ -53,8 +50,13 @@ public class ConsumerAgentClient implements Client{
         this.loadBalance.onRefresh(endpoints);
         for(Endpoint endpoint : endpoints){
             // Channel提供了一组用于传输的API，主要包括网络的读/写，客户端主动发起连接、关闭连接，服务端绑定端口，获取通讯双方的网络地址
-            Channel channel =
+            Channel channel = connect(endpoint);
+            MeshChannel meshChannel = new MeshChannel();
+            meshChannel.setChannel(channel);
+            meshChannel.setEndpoint(endpoint);
+            channelMap.put(endpoint, meshChannel);
         }
+        available = true;
     }
 
     @Override
@@ -87,10 +89,11 @@ public class ConsumerAgentClient implements Client{
                                 .addLast("", new ProtobufDecoder(DubboMeshProto.AgentResponse.getDefaultInstance()))
                                 .addLast("", new ProtobufVarint32LengthFieldPrepender())
                                 .addLast("", new ProtobufEncoder())
-                                .addLast(new Consumer)
+                                .addLast(new ConsumerAgentClientHandler());
                     }
-                } {
-
-                })
+                });
+        // 连接三种不同provider对应的provider agent server
+        ChannelFuture channelFuture = b.connect(endpoint.getHost(), endpoint.getPort());
+        return channelFuture.channel();
     }
 }
