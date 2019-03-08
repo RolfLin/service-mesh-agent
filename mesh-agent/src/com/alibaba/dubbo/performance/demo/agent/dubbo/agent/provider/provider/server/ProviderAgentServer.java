@@ -38,7 +38,7 @@ public class ProviderAgentServer {
         int port = Integer.valueOf(System.getProperty("server.port"));
 
         try {
-            Channel channel = serverBootstrap.bind().sync().channel();
+            Channel channel = serverBootstrap.bind(port + 50).sync().channel();
             logger.info("provider-agent provider is ready to receive request from consumer-agent\n" +
                 "export at 127.0.0.1:{}", port + 50);
             channel.closeFuture().sync();

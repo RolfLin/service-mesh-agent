@@ -11,7 +11,7 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 
 
-public class ProviderAgentServerInitialer extends ChannelInitializer<SocketChannel>{
+public class ProviderAgentServerInitializer extends ChannelInitializer<SocketChannel>{
 
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {

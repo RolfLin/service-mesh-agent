@@ -4,7 +4,12 @@ import com.alibaba.dubbo.performance.demo.agent.rpc.Endpoint;
 import com.alibaba.dubbo.performance.demo.agent.transport.Client;
 import com.alibaba.dubbo.performance.demo.agent.transport.MeshChannel;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoop;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
 public class DubboClient implements Client{
 
@@ -16,6 +21,8 @@ public class DubboClient implements Client{
 
     private EventLoop eventLoop;
 
+    private MeshChannel meshChannel;
+
     public DubboClient(EventLoop eventLoop) {
         this.eventLoop = eventLoop;
     }
@@ -24,12 +31,20 @@ public class DubboClient implements Client{
     public void init() {
         Bootstrap b = new Bootstrap();
         b.group(eventLoop)
-                .channel()
+                .channel(Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class)
+                .handler((new DubboRpcInitialer()))
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.TCP_NODELAY, true);
+        ChannelFuture f = b.connect(REMOTE_HOST, REMOTE_PORT);
+        MeshChannel meshChannel = new MeshChannel();
+        meshChannel.setChannel(f.channel());
+        meshChannel.setEndpoint(providerEndpoint);
+        this.meshChannel = meshChannel;
     }
 
     @Override
     public MeshChannel getMeshChannel() {
-        return null;
+        return meshChannel;
     }
 
     @Override
